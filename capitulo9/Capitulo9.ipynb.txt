@@ -1,0 +1,463 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "collapsed_sections": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Capítulo 9"
+      ],
+      "metadata": {
+        "id": "yP3-p-uqGeL2"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Mercado financeiro e eventos especiais"
+      ],
+      "metadata": {
+        "id": "83LnD6LlTZ5C"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Consultando o preço de ações"
+      ],
+      "metadata": {
+        "id": "dp0d1_9H68AH"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install yfinance"
+      ],
+      "metadata": {
+        "id": "GeNtIekQ5FqU"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "xIVdp51k4zz5"
+      },
+      "outputs": [],
+      "source": [
+        "import yfinance as yf\n",
+        "import pandas as pd\n",
+        "import matplotlib.pyplot as plt"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_acao = yf.download('TAEE11.SA',end='2022-02-04')"
+      ],
+      "metadata": {
+        "id": "-za_rHIg5CtE"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_acao.round(2)\\\n",
+        "  .head()"
+      ],
+      "metadata": {
+        "id": "eEtdcxub7F9c"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Dados de treino\n",
+        "df_treino = pd.DataFrame()\n",
+        "df_treino['ds'] = df_acao.index[:3400]\n",
+        "df_treino['y'] = df_acao['Adj Close'][:3400].values\n",
+        "#Dados de teste\n",
+        "df_teste = pd.DataFrame()\n",
+        "df_teste['ds'] = df_acao.index[3400:]\n",
+        "df_teste['y'] = df_acao['Adj Close'][3400:].values\n",
+        "\n",
+        "#Previsão com o Prophet\n",
+        "from fbprophet import Prophet\n",
+        "modelo = Prophet(seasonality_mode='additive',daily_seasonality=False,weekly_seasonality=True,yearly_seasonality=True,\n",
+        "                 n_changepoints = 5)\n",
+        "modelo.fit(df_treino)\n",
+        "dataframefuturo = modelo.make_future_dataframe(freq='D',periods=184)\n",
+        "previsao = modelo.predict(dataframefuturo);\n",
+        "\n",
+        "#Construção do gráfico\n",
+        "fig = modelo.plot(previsao)\n",
+        "plt.plot(df_teste['ds'],df_teste['y'],'.r')"
+      ],
+      "metadata": {
+        "id": "Cl6rzJzX9AB9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df_teste['ds'][125]"
+      ],
+      "metadata": {
+        "id": "FYQIe_Rj-pjI"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dataframefuturo['ds'][3583]"
+      ],
+      "metadata": {
+        "id": "EszbFRPZBBrN"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Feriados"
+      ],
+      "metadata": {
+        "id": "jvRM706gR0uy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelo = Prophet(seasonality_mode='additive',daily_seasonality=False,weekly_seasonality=True,yearly_seasonality=True,\n",
+        "                 n_changepoints = 5)\n",
+        "#Adicionando feriados do Brasil\n",
+        "modelo.add_country_holidays(country_name='BR')\n",
+        "\n",
+        "modelo.fit(df_treino)\n",
+        "dataframefuturo = modelo.make_future_dataframe(freq='D',periods=185)\n",
+        "previsao = modelo.predict(dataframefuturo);\n",
+        "\n",
+        "#Construção do gráfico\n",
+        "fig = modelo.plot(previsao)\n",
+        "plt.plot(df_teste['ds'],df_teste['y'],'.r')"
+      ],
+      "metadata": {
+        "id": "skU1gc5EKMl4"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelo.plot_components(previsao);"
+      ],
+      "metadata": {
+        "id": "NFQD5DhqKNQ-"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelo.train_holiday_names"
+      ],
+      "metadata": {
+        "id": "vOY8ldLuKNO3"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "previsao.columns"
+      ],
+      "metadata": {
+        "id": "FftTk5VkRt50"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "col_feriados = previsao[['ds',*modelo.train_holiday_names.tolist()]]"
+      ],
+      "metadata": {
+        "id": "NPi3pbfGKNT2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "col_feriados.columns = ['ds','Ano_novo','Tiradentes','Trabalho','Independencia','Aparecida','Finados','Republica','Natal']"
+      ],
+      "metadata": {
+        "id": "MpDfHvgJ_qPG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "contrib_feriados = col_feriados.query('Ano_novo !=0 or Tiradentes !=0 or Trabalho != 0 or Independencia != 0 or Aparecida != 0 or Finados != 0 or Republica != 0 or Natal != 0')"
+      ],
+      "metadata": {
+        "id": "DtpnrT_zEFTU"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "resumo_feriados = pd.DataFrame()\n",
+        "resumo_feriados['ds'] = contrib_feriados['ds']"
+      ],
+      "metadata": {
+        "id": "d4uD3OqDL8YK"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "resumo_feriados['feriados'] = contrib_feriados[['Ano_novo','Tiradentes','Trabalho','Independencia','Aparecida','Finados','Republica','Natal']].sum(axis=1)"
+      ],
+      "metadata": {
+        "id": "K7Vtkt9HMak0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "resumo_feriados.round(2)"
+      ],
+      "metadata": {
+        "id": "csMgkAcINXDD"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Datas customizadas"
+      ],
+      "metadata": {
+        "id": "HIIkGpPNZPWS"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "informacoes = yf.Ticker('TAEE11.SA')\n",
+        "for chave, valor in informacoes.info.items():\n",
+        "  print(chave,':',valor)"
+      ],
+      "metadata": {
+        "id": "TG80aAVAA9EH"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dividendos = pd.DataFrame(informacoes.dividends)\n",
+        "dividendos.head()"
+      ],
+      "metadata": {
+        "id": "tmTv9_EATgf0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dividendos.shape"
+      ],
+      "metadata": {
+        "id": "1Pe82a7LRJn2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datas_dividendos = pd.DataFrame({\n",
+        "    'holiday': 'dividendos',\n",
+        "    'ds': pd.to_datetime(dividendos.index),\n",
+        "    'lower_window': 0,\n",
+        "    'upper_window': 0,\n",
+        "})"
+      ],
+      "metadata": {
+        "id": "SjFfm3svjXj4"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelo = Prophet(seasonality_mode='additive',daily_seasonality=False,weekly_seasonality=True,yearly_seasonality=True,\n",
+        "                 n_changepoints = 5,holidays=datas_dividendos)\n",
+        "\n",
+        "modelo.fit(df_treino)\n",
+        "dataframefuturo = modelo.make_future_dataframe(freq='D',periods=185)\n",
+        "previsao = modelo.predict(dataframefuturo);"
+      ],
+      "metadata": {
+        "id": "dCSpKWIT63X2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "modelo.plot_components(previsao,'holidays');"
+      ],
+      "metadata": {
+        "id": "5HYGBzaR_Sf0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Importância individual dos eventos"
+      ],
+      "metadata": {
+        "id": "zoryVnlgN6II"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from numpy.random import randint\n",
+        "prior_scale = randint(0,10,41)"
+      ],
+      "metadata": {
+        "id": "LBvgYT9yU4yb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prior_scale"
+      ],
+      "metadata": {
+        "id": "XF9uhKS4Vdad"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datas_dividendos = pd.DataFrame({\n",
+        "    'holiday': 'dividendos',\n",
+        "    'ds': pd.to_datetime(dividendos.index),\n",
+        "    'lower_window': 0,\n",
+        "    'upper_window': 0,\n",
+        "    'prior_scale': prior_scale\n",
+        "})"
+      ],
+      "metadata": {
+        "id": "kxClDw65U3zk"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "pd.options.display.max_columns = 5\n",
+        "datas_dividendos.head()"
+      ],
+      "metadata": {
+        "id": "uAcvJIKnVnts"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Gráficos de velas"
+      ],
+      "metadata": {
+        "id": "flgQeU3yKPLA"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import plotly.graph_objects as go\n",
+        "fig = go.Figure(data=[go.Candlestick(x=df_acao.index,\n",
+        "                open=df_acao['Open'],\n",
+        "                high=df_acao['High'],\n",
+        "                low=df_acao['Low'],\n",
+        "                close=df_acao['Close'],\n",
+        "                increasing_line_color= 'black', decreasing_line_color= 'gray'\n",
+        ")])\n",
+        "fig.update_layout(xaxis_rangeslider_visible=False)\n",
+        "fig.show()"
+      ],
+      "metadata": {
+        "id": "Tu6TvVdGTW8q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "xGukJQ6BY1aJ"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
